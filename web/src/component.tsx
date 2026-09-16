@@ -21,7 +21,20 @@ function App() {
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [weights, setWeights] = useState<Record<string, number>>({});
   const initialWeights = useRef<Record<string, number>>({});
+const applyCanvas = (next: Canvas | undefined) => {
+  if (!next?.criteria || !next?.options) return;
 
+  const nextWeights = Object.fromEntries(
+    next.criteria.map((criterion) => [
+      criterion.id,
+      criterion.weight,
+    ])
+  );
+
+  initialWeights.current = nextWeights;
+  setWeights(nextWeights);
+  setCanvas(next);
+};
   useEffect(() => {
   const onMessage = (event: MessageEvent) => {
     if (event.source !== window.parent) return;
