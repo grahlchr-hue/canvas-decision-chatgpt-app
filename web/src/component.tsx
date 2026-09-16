@@ -85,7 +85,13 @@ function App() {
 }
 
 declare global {
-  interface Window { openai?: { setWidgetState?: (state: unknown) => void } }
+  interface Window {
+    openai?: {
+      toolOutput?: unknown;
+      widgetState?: unknown;
+      setWidgetState?: (state: unknown) => void;
+    };
+  }
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
