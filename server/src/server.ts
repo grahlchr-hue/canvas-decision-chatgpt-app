@@ -81,7 +81,16 @@ export function createDecisionServer(): McpServer {
         uri: TEMPLATE_URI,
         mimeType: "text/html;profile=mcp-app",
         text: loadWidgetHtml(),
-        _meta: { ui: { prefersBorder: true } },
+        _meta: {
+  ui: {
+    prefersBorder: true,
+    domain: "https://canvas-decision-chatgpt-app.onrender.com",
+    csp: {
+      connectDomains: [],
+      resourceDomains: [],
+    },
+  },
+},
       },
     ],
   }));
