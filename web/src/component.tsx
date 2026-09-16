@@ -23,20 +23,32 @@ function App() {
   const initialWeights = useRef<Record<string, number>>({});
 
   useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      if (event.source !== window.parent) return;
-      const message = event.data;
-      if (!message || message.jsonrpc !== "2.0" || message.method !== "ui/notifications/tool-result") return;
-      const next = message.params?.structuredContent as Canvas | undefined;
-      if (!next?.criteria || !next?.options) return;
-      const nextWeights = Object.fromEntries(next.criteria.map((criterion) => [criterion.id, criterion.weight]));
-      initialWeights.current = nextWeights;
-      setWeights(nextWeights);
-      setCanvas(next);
-    };
-    window.addEventListener("message", onMessage, { passive: true });
-    return () => window.removeEventListener("message", onMessage);
-  }, []);
+  const onMessage = (event: MessageEvent) => {
+    if (event.source !== window.parent) return;
+
+    const message = event.data;
+
+    if (
+      !message ||
+      message.jsonrpc !== "2.0" ||
+      message.method !== "ui/notifications/tool-result"
+    ) {
+      return;
+    }
+
+    applyCanvas(
+      message.params?.structuredContent as Canvas | undefined
+    );
+  };
+
+  window.addEventListener("message", onMessage, { passive: true });
+    // ChatGPT-Kompatibilitätsweg:
+  applyCanvas(window.openai?.toolOutput as Canvas | undefined);
+
+  return () => {
+    window.removeEventListener("message", onMessage);
+  };
+}, []);
 
   const ranked = useMemo(() => {
     if (!canvas) return [];
