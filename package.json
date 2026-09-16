@@ -1,0 +1,31 @@
+{
+  "name": "decision-canvas-chatgpt-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A local MCP server and interactive ChatGPT widget for comparing difficult choices.",
+  "scripts": {
+    "build": "npm run build:widget && tsc -p tsconfig.json",
+    "build:widget": "esbuild web/src/component.tsx --bundle --format=esm --target=es2022 --minify --outfile=web/dist/component.js",
+    "dev": "npm run build:widget && tsx watch server/src/index.ts",
+    "start": "node dist/server/src/index.js",
+    "test": "node --test dist/server/test/*.test.js",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.1",
+    "express": "^5.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.1",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
+    "esbuild": "^0.25.9",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
