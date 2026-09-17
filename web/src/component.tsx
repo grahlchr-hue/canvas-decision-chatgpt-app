@@ -21,59 +21,45 @@ function App() {
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [weights, setWeights] = useState<Record<string, number>>({});
   const initialWeights = useRef<Record<string, number>>({});
-function applyCanvas(next: Canvas | undefined) {
-  if (!next?.criteria || !next?.options) return;
+  const lastCanvasPayload = useRef<string | null>(null);
 
-  const nextWeights = Object.fromEntries(
-    next.criteria.map((criterion) => [
-      criterion.id,
-      criterion.weight,
-    ])
-  );
+  useEffect(() => {
+    function loadCanvas(next: Canvas | undefined) {
+      if (!next || !Array.isArray(next.criteria) || !Array.isArray(next.options)) return;
+      if (!next.criteria.length || !next.options.length) return;
 
-  initialWeights.current = nextWeights;
-  setWeights(nextWeights);
-  setCanvas(next);
-};
- useEffect(() => {
-  const readToolOutput = () => {
-    applyCanvas(
-      window.openai?.toolOutput as Canvas | undefined
-    );
-  };
+      // State notifications must not reset weights to the original tool result.
+      const payload = JSON.stringify(next);
+      if (lastCanvasPayload.current === payload) return;
+      lastCanvasPayload.current = payload;
 
-  const onMessage = (event: MessageEvent) => {
-    if (event.source !== window.parent) return;
-
-    const message = event.data;
-
-    if (
-      !message ||
-      message.jsonrpc !== "2.0" ||
-      message.method !== "ui/notifications/tool-result"
-    ) {
-      return;
+      const nextWeights = Object.fromEntries(
+        next.criteria.map((criterion) => [criterion.id, criterion.weight])
+      );
+      initialWeights.current = nextWeights;
+      setWeights(nextWeights);
+      setCanvas(next);
     }
 
-    applyCanvas(
-      message.params?.structuredContent as Canvas | undefined
-    );
-  };
+    const readToolOutput = () => {
+      loadCanvas(window.openai?.toolOutput as Canvas | undefined);
+    };
 
-  // Beide Datenwege abonnieren, bevor wir vorhandene Daten lesen.
-  window.addEventListener("message", onMessage);
-  window.addEventListener("openai:set_globals", readToolOutput);
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window.parent) return;
+      const message = event.data;
+      if (!message || message.jsonrpc !== "2.0" || message.method !== "ui/notifications/tool-result") return;
+      loadCanvas(message.params?.structuredContent as Canvas | undefined);
+    };
+    window.addEventListener("message", onMessage, { passive: true });
+    window.addEventListener("openai:set_globals", readToolOutput);
+    readToolOutput();
 
-  readToolOutput();
-
-  return () => {
-    window.removeEventListener("message", onMessage);
-    window.removeEventListener(
-      "openai:set_globals",
-      readToolOutput
-    );
-  };
-}, []);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("openai:set_globals", readToolOutput);
+    };
+  }, []);
 
   const ranked = useMemo(() => {
     if (!canvas) return [];
@@ -91,7 +77,7 @@ function applyCanvas(next: Canvas | undefined) {
     window.openai?.setWidgetState?.({ weights });
   }, [canvas, ranked, weights]);
 
-  if (!canvas) return <div className="shell empty">Preparing your decision canvas…</div>;
+  if (!canvas) return <><style>{css}</style><div className="shell empty">Preparing your decision canvas…</div></>;
   const leader = ranked[0];
 
   return <main className="shell">
@@ -106,7 +92,7 @@ function applyCanvas(next: Canvas | undefined) {
           <span className="criterion-head"><span>{criterion.label}</span><span className="weight">{weights[criterion.id] ?? 0}/10</span></span>
           <input type="range" min="0" max="10" step="1" value={weights[criterion.id] ?? 0} onChange={(event) => setWeights((current) => ({ ...current, [criterion.id]: Number(event.target.value) }))} />
         </label>)}
-        <button className="secondary" type="button" onClick={() => setWeights(initialWeights.current)}>Reset weights</button>
+        <button className="secondary" type="button" onClick={() => setWeights({ ...initialWeights.current })}>Reset weights</button>
       </section>
       <section className="panel" aria-label="Ranked options">
         <h2>Live ranking</h2>
