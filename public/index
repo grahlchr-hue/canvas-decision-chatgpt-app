@@ -1,1 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Decision Canvas – ChatGPT MCP App</title>
+  <style>
+    :root {
+      --primary: #235f38;
+      --accent: #2f7d4a;
+      --bg: #f7faf4;
+      --card-bg: #ffffff;
+      --text: #17211b;
+      --muted: #53645a;
+      --border: #dce8df;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 0 20px;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+    header { padding: 48px 0 32px; text-align: center; }
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--primary);
+      background: #e4efe7;
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 2.4rem; color: var(--primary); line-height: 1.2; margin-bottom: 12px; }
+    p.lead { font-size: 1.15rem; color: var(--muted); max-width: 640px; margin: 0 auto 24px; }
+    .preview-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 12px 32px rgba(24, 51, 34, 0.06);
+      margin-bottom: 48px;
+    }
+    iframe { width: 100%; height: 680px; border: 0; display: block; }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-bottom: 48px;
+    }
+    .feature {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .feature h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--primary); }
+    .feature p { font-size: 0.95rem; color: var(--muted); }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0 48px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    footer nav { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; }
+    footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">ChatGPT App / Remote MCP</span>
+      <h1>Decision Canvas</h1>
+      <p class="lead">
+        Decision Canvas verwandelt komplexe Entscheidungen in transparente, gewichtete Vergleiche, deren Prioritäten direkt in ChatGPT angepasst werden können.
+      </p>
+    </header>
 
+    <div class="preview-card">
+      <iframe src="/preview" title="Decision Canvas Preview"></iframe>
+    </div>
+
+    <section class="features">
+      <div class="feature">
+        <h3>1. Strukturieren</h3>
+        <p>Formuliere deine Fragestellung in ChatGPT. Decision Canvas identifiziert relevante Kriterien und bewertet deine Optionen objektiv vor.</p>
+      </div>
+      <div class="feature">
+        <h3>2. Interaktiv gewichten</h3>
+        <p>Verschiebe Schieberegler direkt in der visuellen Matrix. Alle Gesamt-Scores und Rangfolgen aktualisieren sich in Echtzeit.</p>
+      </div>
+      <div class="feature">
+        <h3>3. Direktes Modell-Feedback</h3>
+        <p>Deine geänderten Prioritäten synchronisieren sich automatisch mit ChatGPT für nahtlose Vertiefungsfragen und Reality-Checks.</p>
+      </div>
+    </section>
+
+    <section class="use-cases" style="margin-bottom: 48px; background: #ffffff; border: 1px solid #dce8df; border-radius: 12px; padding: 24px;">
+      <h2 style="font-size: 1.25rem; color: #235f38; margin-bottom: 16px;">Typische Anwendungsfälle</h2>
+      <ul style="list-style-position: inside; color: #53645a; line-height: 1.8;">
+        <li><strong>Software- & Tool-Auswahl:</strong> Abwägung technischer Lösungen nach Budget, Sicherheit und Funktionsumfang.</li>
+        <li><strong>Karriere & Jobangebote:</strong> Mehrere Optionen nach Gehalt, Kultur, Lernkurve und Pendelzeit vergleichen.</li>
+        <li><strong>Produkt- & Feature-Roadmaps:</strong> Priorisierung von Epics nach Machbarkeit, Impact und Kosten.</li>
+        <li><strong>Investitionen & Anschaffungen:</strong> Sachliche Gegenüberstellung von Angeboten mit variierenden Kriterien.</li>
+      </ul>
+    </section>
+
+    <div class="disclaimer-banner" style="background: #eef5f0; border-left: 4px solid #2f7d4a; padding: 14px 18px; border-radius: 6px; margin-bottom: 48px; font-size: 0.9rem; color: #405247;">
+      <strong>Wichtiger Hinweis:</strong> Decision Canvas bietet strukturierende Entscheidungshilfen und algorithmische Modellrechnungen auf Basis deiner Eingaben. Die Ergebnisse stellen keine professionelle Rechts-, Finanz-, Steuer- oder Medizinberatung dar.
+    </div>
+
+    <footer>
+      <nav>
+        <a href="/support">Support</a>
+        <a href="/privacy">Datenschutz</a>
+        <a href="/terms">Nutzungsbedingungen</a>
+      </nav>
+      <p style="margin-top: 8px;">
+        Entwickelt und herausgegeben von <strong>[Dein Name / Firmenname]</strong>.
+      </p>
+      <p style="margin-top: 4px;">
+        Support: <a href="mailto:support@canvas-decision-chatgpt-app.onrender.com">support@canvas-decision-chatgpt-app.onrender.com</a>
+      </p>
+      <p style="margin-top: 12px; font-size: 0.8rem; color: #7a8c81;">
+        &copy; 2026 Decision Canvas. Bereitgestellt über Render.
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
