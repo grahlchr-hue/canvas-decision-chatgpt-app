@@ -54,16 +54,25 @@ h1{font-size:26px;line-height:1.15;margin:0}
 @media(prefers-color-scheme:dark){:root{color:#edf5ef}.shell{background:linear-gradient(145deg,#17251d,#122018);border-color:#304338}.panel,.option{background:rgba(27,43,34,.88);border-color:#3a4d41}.context,.summary{color:#aebdb3}.bar{background:#34473b}.secondary{background:#31483a;color:#edf5ef}}
 `;
 
+// Sendet sowohl als vollwertiger JSON-RPC Request (mit id) als auch als Notification an alle Iframe-Ebenen
 function send(method: string, params: unknown) {
-  const payload = { jsonrpc: "2.0", method, params };
-  try {
-    window.parent.postMessage(payload, "*");
-  } catch {}
+  const reqId = Date.now().toString();
+  const requestPayload = { jsonrpc: "2.0", id: reqId, method, params };
+  const notificationPayload = { jsonrpc: "2.0", method, params };
+
+  const targets = [window.parent];
   try {
     if (window.top && window.top !== window.parent) {
-      window.top.postMessage(payload, "*");
+      targets.push(window.top);
     }
   } catch {}
+
+  targets.forEach((target) => {
+    try {
+      target.postMessage(requestPayload, "*");
+      target.postMessage(notificationPayload, "*");
+    } catch {}
+  });
 }
 
 function extractCanvas(raw: unknown): Canvas | null {
@@ -127,13 +136,9 @@ function App() {
     window.addEventListener("message", onMessage);
     window.addEventListener("openai:set_globals", readToolOutput);
 
-    // 1. Initialer Leseversuch
     readToolOutput();
-
-    // 2. Host signalisieren, dass UI bereit ist
     send("ui/ready", {});
 
-    // 3. Polling-Timer: Prüft alle 250ms für bis zu 6 Sekunden, ob window.openai nachgeladen wurde
     const timer = setInterval(() => {
       if (canvas) {
         clearInterval(timer);
@@ -207,20 +212,28 @@ function App() {
     const promptMessage =
       `Erkläre mir bitte, warum ${leaderName} mit meinen angepassten Prioritäten führt, identifiziere die größte verbleibende Unsicherheit und schlage einen konkreten Realitäts-Check vor der finalen Entscheidung vor.`;
 
+    // 1. JSON-RPC Request mit id & role an MCP-Host
     send("ui/message", {
       role: "user",
       content: [{ type: "text", text: promptMessage }],
     });
 
+    // 2. Fallbacks für alle Varianten des nativen window.openai SDKs
     try {
-      const openAiObj = window.openai as { sendMessage?: (msg: string) => void } | undefined;
-      openAiObj?.sendMessage?.(promptMessage);
+      const api = window.openai as Record<string, unknown> | undefined;
+      if (typeof api?.sendUserMessage === "function") {
+        (api.sendUserMessage as (arg: unknown) => void)({ text: promptMessage });
+      }
+      if (typeof api?.sendMessage === "function") {
+        (api.sendMessage as (arg: unknown) => void)({ text: promptMessage });
+        (api.sendMessage as (arg: unknown) => void)(promptMessage);
+      }
     } catch {}
 
     setIsSent(true);
     setTimeout(() => {
       setIsSent(false);
-    }, 2500);
+    }, 3000);
   };
 
   return (
@@ -277,7 +290,7 @@ function App() {
               type="button"
               onClick={handleDiscussClick}
             >
-              {isSent ? "✓ Request sent…" : "Discuss this ranking"}
+              {isSent ? "✓ Gesendet..." : "Discuss this ranking"}
             </button>
           </div>
         </section>
@@ -292,7 +305,8 @@ declare global {
       toolOutput?: unknown;
       widgetState?: unknown;
       setWidgetState?: (state: unknown) => void;
-      sendMessage?: (message: string) => void;
+      sendMessage?: (message: unknown) => void;
+      sendUserMessage?: (message: unknown) => void;
     };
   }
 }
