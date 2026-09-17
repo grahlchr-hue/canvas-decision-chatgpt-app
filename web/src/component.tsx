@@ -35,7 +35,13 @@ function applyCanvas(next: Canvas | undefined) {
   setWeights(nextWeights);
   setCanvas(next);
 };
-  useEffect(() => {
+ useEffect(() => {
+  const readToolOutput = () => {
+    applyCanvas(
+      window.openai?.toolOutput as Canvas | undefined
+    );
+  };
+
   const onMessage = (event: MessageEvent) => {
     if (event.source !== window.parent) return;
 
@@ -54,12 +60,18 @@ function applyCanvas(next: Canvas | undefined) {
     );
   };
 
-  window.addEventListener("message", onMessage, { passive: true });
-    // ChatGPT-Kompatibilitätsweg:
-  applyCanvas(window.openai?.toolOutput as Canvas | undefined);
+  // Beide Datenwege abonnieren, bevor wir vorhandene Daten lesen.
+  window.addEventListener("message", onMessage);
+  window.addEventListener("openai:set_globals", readToolOutput);
+
+  readToolOutput();
 
   return () => {
     window.removeEventListener("message", onMessage);
+    window.removeEventListener(
+      "openai:set_globals",
+      readToolOutput
+    );
   };
 }, []);
 
