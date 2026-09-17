@@ -3,7 +3,7 @@
   "schema_version": 1,
   "app_info": {
     "display_name": "Decision Canvas",
-    "subtitle": "Compare choices with weighted criteria",
+    "subtitle": "Compare choices with weights",
     "description": "Decision Canvas helps users compare two to five concrete alternatives using explicit, context-sensitive criteria and differentiated weights. It returns a transparent weighted ranking and can render an interactive canvas where users adjust priorities and send the revised context back to the conversation. It is a decision-support aid, not professional legal, financial, medical, or tax advice.",
     "category": "PRODUCTIVITY"
   },
