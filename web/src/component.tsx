@@ -66,35 +66,93 @@ function send(method: string, params: unknown) {
   } catch {}
 }
 
+function extractCanvas(raw: unknown): Canvas | null {
+  if (!raw || typeof raw !== "object") return null;
+  const candidate = ((raw as Record<string, unknown>).structuredContent ??
+    (raw as Record<string, unknown>).result ??
+    raw) as Partial<Canvas>;
+
+  if (
+    candidate &&
+    Array.isArray(candidate.criteria) &&
+    Array.isArray(candidate.options) &&
+    candidate.criteria.length > 0 &&
+    candidate.options.length > 0
+  ) {
+    return candidate as Canvas;
+  }
+  return null;
+}
+
 function App() {
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [weights, setWeights] = useState<Record<string, number>>({});
-  const [buttonState, setButtonState] = useState<"idle" | "sent">("idle");
+  const [isSent, setIsSent] = useState(false);
   const initialWeights = useRef<Record<string, number>>({});
-
-  const applyCanvas = (next: Canvas | undefined) => {
-    if (!next?.criteria || !next?.options) return;
-    const nextWeights = Object.fromEntries(next.criteria.map((criterion) => [criterion.id, criterion.weight]));
-    initialWeights.current = nextWeights;
-    setWeights(nextWeights);
-    setCanvas(next);
-  };
+  const lastCanvasPayload = useRef<string | null>(null);
 
   useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      if (event.source !== window.parent && event.source !== window.top) return;
-      const message = event.data;
-      if (!message || message.jsonrpc !== "2.0" || message.method !== "ui/notifications/tool-result") return;
-      applyCanvas(message.params?.structuredContent as Canvas | undefined);
+    function loadCanvas(raw: unknown) {
+      const next = extractCanvas(raw);
+      if (!next) return;
+
+      const payload = JSON.stringify(next);
+      if (lastCanvasPayload.current === payload) return;
+      lastCanvasPayload.current = payload;
+
+      const nextWeights = Object.fromEntries(
+        next.criteria.map((criterion) => [criterion.id, criterion.weight])
+      );
+      initialWeights.current = nextWeights;
+      setWeights(nextWeights);
+      setCanvas(next);
+    }
+
+    const readToolOutput = () => {
+      loadCanvas(window.openai?.toolOutput);
     };
 
-    window.addEventListener("message", onMessage, { passive: true });
-    applyCanvas(window.openai?.toolOutput as Canvas | undefined);
+    const onMessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (!message) return;
+
+      if (message.jsonrpc === "2.0" && message.method === "ui/notifications/tool-result") {
+        loadCanvas(message.params?.structuredContent ?? message.params);
+        return;
+      }
+
+      loadCanvas(message.structuredContent ?? message);
+    };
+
+    window.addEventListener("message", onMessage);
+    window.addEventListener("openai:set_globals", readToolOutput);
+
+    // 1. Initialer Leseversuch
+    readToolOutput();
+
+    // 2. Host signalisieren, dass UI bereit ist
+    send("ui/ready", {});
+
+    // 3. Polling-Timer: Prüft alle 250ms für bis zu 6 Sekunden, ob window.openai nachgeladen wurde
+    const timer = setInterval(() => {
+      if (canvas) {
+        clearInterval(timer);
+        return;
+      }
+      readToolOutput();
+    }, 250);
+
+    const timeout = setTimeout(() => {
+      clearInterval(timer);
+    }, 6000);
 
     return () => {
       window.removeEventListener("message", onMessage);
+      window.removeEventListener("openai:set_globals", readToolOutput);
+      clearInterval(timer);
+      clearTimeout(timeout);
     };
-  }, []);
+  }, [canvas]);
 
   const ranked = useMemo(() => {
     if (!canvas) return [];
@@ -104,7 +162,10 @@ function App() {
         ...option,
         total:
           Math.round(
-            (canvas.criteria.reduce((sum, criterion) => sum + (option.scores[criterion.id] ?? 0) * (weights[criterion.id] ?? 0), 0) /
+            (canvas.criteria.reduce(
+              (sum, criterion) => sum + (option.scores[criterion.id] ?? 0) * (weights[criterion.id] ?? 0),
+              0
+            ) /
               totalWeight) *
               10
           ) / 10,
@@ -115,49 +176,50 @@ function App() {
 
   useEffect(() => {
     if (!canvas || !ranked.length) return;
-    const snapshot = ranked.map((option) => option.rank + ". " + option.name + ": " + option.total + "/10").join("; ");
+    const snapshot = ranked.map((option) => `${option.rank}. ${option.name}: ${option.total}/10`).join("; ");
     send("ui/update-model-context", {
       content: [
         {
           type: "text",
-          text: "Decision Canvas Rangfolge aktualisiert: " + snapshot + ". Aktuelle Gewichtung: " + JSON.stringify(weights) + ".",
+          text: `Aktualisierte Prioritäten im Decision Canvas: ${snapshot}. Aktuelle Gewichte: ${JSON.stringify(weights)}.`,
         },
       ],
     });
     window.openai?.setWidgetState?.({ weights });
   }, [canvas, ranked, weights]);
 
-  if (!canvas) return <div className="shell empty">Preparing your decision canvas…</div>;
+  if (!canvas) {
+    return (
+      <>
+        <style>{css}</style>
+        <div className="shell empty">Preparing your decision canvas…</div>
+      </>
+    );
+  }
+
   const leader = ranked[0];
 
   const handleDiscussClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
-    const leaderName = leader ? leader.name : "die führende Option";
+    const leaderName = leader?.name ?? "die führende Option";
     const promptMessage =
-      "Erkläre mir bitte, warum " +
-      leaderName +
-      " mit meinen angepassten Prioritäten führt, identifiziere die größte verbleibende Unsicherheit und schlage einen konkreten Realitäts-Check vor der finalen Entscheidung vor.";
+      `Erkläre mir bitte, warum ${leaderName} mit meinen angepassten Prioritäten führt, identifiziere die größte verbleibende Unsicherheit und schlage einen konkreten Realitäts-Check vor der finalen Entscheidung vor.`;
 
-    // 1. JSON-RPC Nachricht an Chat-Host
     send("ui/message", {
       role: "user",
       content: [{ type: "text", text: promptMessage }],
     });
 
-    // 2. Fallback für native OpenAI-Objekte
     try {
-      const openAiObj = window.openai as Record<string, unknown> | undefined;
-      if (typeof openAiObj?.sendMessage === "function") {
-        (openAiObj.sendMessage as (text: string) => void)(promptMessage);
-      }
+      const openAiObj = window.openai as { sendMessage?: (msg: string) => void } | undefined;
+      openAiObj?.sendMessage?.(promptMessage);
     } catch {}
 
-    // 3. Sofortiges optisches Feedback
-    setButtonState("sent");
+    setIsSent(true);
     setTimeout(() => {
-      setButtonState("idle");
+      setIsSent(false);
     }, 2500);
   };
 
@@ -189,7 +251,7 @@ function App() {
             </label>
           ))}
           <div className="actions">
-            <button className="secondary" type="button" onClick={() => setWeights(initialWeights.current)}>
+            <button className="secondary" type="button" onClick={() => setWeights({ ...initialWeights.current })}>
               Reset weights
             </button>
           </div>
@@ -204,18 +266,18 @@ function App() {
                 <span className="total">{option.total}</span>
               </div>
               <p className="summary">{option.summary}</p>
-              <div className="bar" aria-label={option.total + " out of 10"}>
-                <span style={{ width: option.total * 10 + "%" }} />
+              <div className="bar" aria-label={`${option.total} out of 10`}>
+                <span style={{ width: `${option.total * 10}%` }} />
               </div>
             </article>
           ))}
           <div className="actions">
             <button
-              className={"primary " + (buttonState === "sent" ? "sent" : "")}
+              className={"primary " + (isSent ? "sent" : "")}
               type="button"
               onClick={handleDiscussClick}
             >
-              {buttonState === "sent" ? "✓ Request sent…" : "Discuss this ranking"}
+              {isSent ? "✓ Request sent…" : "Discuss this ranking"}
             </button>
           </div>
         </section>
