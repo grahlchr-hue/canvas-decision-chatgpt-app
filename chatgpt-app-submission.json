@@ -1,0 +1,85 @@
+{
+  "$schema": "https://developers.openai.com/plugins/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "Decision Canvas",
+    "subtitle": "Compare choices with weighted criteria",
+    "description": "Decision Canvas helps users compare two to five concrete alternatives using explicit, context-sensitive criteria and differentiated weights. It returns a transparent weighted ranking and can render an interactive canvas where users adjust priorities and send the revised context back to the conversation. It is a decision-support aid, not professional legal, financial, medical, or tax advice.",
+    "category": "PRODUCTIVITY"
+  },
+  "tools": {
+    "build_decision_analysis": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "The tool validates the supplied criteria and options and computes an in-memory weighted ranking. It does not create, modify, or delete external records.",
+        "open_world_justification": "The tool operates only on the criteria, weights, options, and scores supplied in the request; it does not browse the web or access external systems.",
+        "destructive_justification": "The tool performs no external writes, deletions, account actions, or irreversible operations."
+      }
+    },
+    "show_decision_canvas": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "The tool presents the already computed decision structure and ranking in an interactive widget. It does not persist or change external data.",
+        "open_world_justification": "The widget renders only the decision data supplied by the preceding analysis and does not retrieve information from external systems.",
+        "destructive_justification": "The tool only displays and locally reweights the supplied decision data; it performs no destructive or irreversible action."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "The user compares three home-office setups and asks for a weighted recommendation based on comfort, cost, and space efficiency. The assistant should propose differentiated weights, score the options, and render the interactive canvas.",
+      "user_prompt": "Help me choose between a standing desk, a wall-mounted desk, and my existing table for a small apartment. Consider comfort, cost, and space efficiency, and show me the decision canvas.",
+      "tools_triggered": "build_decision_analysis, show_decision_canvas",
+      "expected_output": "A validated weighted ranking of the three options followed immediately by the interactive Decision Canvas widget."
+    },
+    {
+      "description": "The user compares job offers with explicit criteria. The assistant should use different weights reflecting the stated priorities and provide a transparent ranking without presenting the result as professional advice.",
+      "user_prompt": "Compare these two job offers: Offer A pays more but requires a long commute; Offer B pays less but is remote and has better growth potential. Weigh compensation, commute, flexibility, and career growth.",
+      "tools_triggered": "build_decision_analysis, show_decision_canvas",
+      "expected_output": "A weighted comparison with differentiated criteria and an interactive canvas that explains the tradeoffs."
+    },
+    {
+      "description": "The user compares software tools and asks for a decision canvas. The assistant should score at least two concrete options using criteria relevant to the request.",
+      "user_prompt": "Which project-management tool should our small team choose: Tool A, Tool B, or Tool C? Compare price, ease of adoption, integrations, and reporting, then show the canvas.",
+      "tools_triggered": "build_decision_analysis, show_decision_canvas",
+      "expected_output": "A ranked comparison of all three tools with weighted scores and the rendered widget."
+    },
+    {
+      "description": "The user asks to revisit priorities after seeing a result. The assistant should render the existing decision structure only when valid analysis data is available and preserve the supplied option and criterion values.",
+      "user_prompt": "Show the decision canvas again for the home-office comparison, but make low cost my most important priority and keep comfort more important than space.",
+      "tools_triggered": "show_decision_canvas",
+      "expected_output": "The existing decision structure is shown with the requested priorities represented in the canvas context."
+    },
+    {
+      "description": "The user asks for a consumer purchase comparison with multiple concrete options. The assistant should use positive scoring orientation, explain that scores are decision support, and render the result.",
+      "user_prompt": "Compare buying a new laptop, buying a refurbished laptop, and keeping my current laptop using performance, upfront cost, reliability, and sustainability. Please make a weighted decision canvas.",
+      "tools_triggered": "build_decision_analysis, show_decision_canvas",
+      "expected_output": "A transparent weighted ranking with at least two alternatives and an interactive canvas, accompanied by a reminder that the result supports rather than replaces judgment."
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "The user asks a factual question rather than comparing at least two concrete alternatives. Decision tools must not be triggered.",
+      "user_prompt": "What is the capital of France?",
+      "file_attachment_urls": null
+    },
+    {
+      "description": "The user asks for a translation. Decision tools must not be triggered because this is explicitly outside the tool's intended use.",
+      "user_prompt": "Translate 'Good morning' into German.",
+      "file_attachment_urls": null
+    },
+    {
+      "description": "The user mentions a decision but provides only one concrete option. The assistant should ask for at least one additional option instead of invoking the decision tools.",
+      "user_prompt": "Should I buy this one specific laptop? Compare it using cost and performance.",
+      "file_attachment_urls": null
+    }
+  ]
+}
