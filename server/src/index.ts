@@ -6,6 +6,7 @@ import { scoreDecision } from "./decision.js";
 const port = Number(process.env.PORT ?? 8787);
 const app = express();
 app.use(express.json({ limit: "1mb" }));
+app.use(express.static("public", { extensions: ["html"] }));
 
 app.get("/health", (_req, res) => res.json({ ok: true, service: "decision-canvas" }));
 
