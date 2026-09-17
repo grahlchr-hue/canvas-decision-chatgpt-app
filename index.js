@@ -19,6 +19,15 @@ app.get("/terms", (_req, res) => {
   res.sendFile("terms.html", { root: "public" });
 });
 
+app.get("/.well-known/openai-apps-challenge", (_req, res) => {
+  const token = process.env.OPENAI_APPS_VERIFICATION_TOKEN ?? "o7I1ETQQBHz9rU4k_0bJXUlkwVKyC6qLSNKOvaLpXkA";
+
+  if (!token) {
+    return res.status(404).send("Verification token not configured");
+  }
+
+  res.type("text/plain").send(token);
+});
 
 app.get("/health", (_req, res) => res.json({ ok: true, service: "decision-canvas" }));
 app.all("/mcp", async (req, res) => {
