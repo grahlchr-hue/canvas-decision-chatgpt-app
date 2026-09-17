@@ -71,12 +71,16 @@ export function createDecisionServer(): McpServer {
     {
       capabilities: { tools: {}, resources: {} },
       instructions:
-        "CRITICAL ROUTING RULES:\n" +
-        "1. ONLY trigger decision tools when the user is actively deciding between or comparing at least TWO concrete options or alternatives.\n" +
-        "2. NEVER trigger decision tools for standard text queries, greetings/birthday wishes, translations, or factual/time lookups.\n" +
-        "3. LANGUAGE: Always respond and construct criteria in the exact same language as the user query (do not translate German inputs into English).\n" +
-        "4. SCORING ORIENTATION: Frame all criteria positively as benefits (e.g., 'Cost efficiency' instead of 'Costs'). 10 is always the best outcome, 0/1 is the worst.\n" +
-        "5. FLOW: Call build_decision_analysis first, then immediately call show_decision_canvas with the structured output.",
+  "CRITICAL ROUTING RULES:\n" +
+  "1. ONLY trigger decision tools when the user is actively deciding between or comparing at least TWO concrete options.\n" +
+  "2. NEVER trigger decision tools for standard text queries, greetings, translations, or factual lookups.\n" +
+  "3. INTELLIGENT WEIGHT PROPOSALS (CORE VALUE):\n" +
+  "   - NEVER assign identical weights to all criteria (e.g. do NOT set all to 5 or 8).\n" +
+  "   - Analyze the user's prompt context to infer what matters most.\n" +
+  "   - Differentiate weights clearly on a 1–10 scale: Core priorities get 8–10, secondary factors 5–7, trade-offs/minor factors 2–4.\n" +
+  "4. LANGUAGE: Always use the exact same language as the user query (no auto-translation).\n" +
+  "5. SCORING ORIENTATION: Frame criteria positively as benefits. 10 is best, 0/1 is worst.\n" +
+  "6. FLOW: Call build_decision_analysis first, then immediately show_decision_canvas.",
     },
   );
 
@@ -100,21 +104,21 @@ export function createDecisionServer(): McpServer {
     ],
   }));
 
-  server.registerTool(
-    "build_decision_analysis",
-    {
-      title: "Build decision analysis",
-      description:
-        "Structures and scores a choice between multiple alternatives using explicit weighted criteria.\n\n" +
-        "WHEN TO USE:\n" +
-        "- ONLY when the user explicitly or implicitly asks to compare, evaluate, or decide between at least TWO concrete options.\n" +
-        "- If key details or options are missing, ask clarifying questions before calling this tool.\n\n" +
-        "STRICT EXCLUSIONS (NEVER USE):\n" +
-        "- NEVER use for translation requests (e.g., 'Translate this sentence...').\n" +
-        "- NEVER use for creative text generation without comparison (e.g., birthday wishes, poems, emails).\n" +
-        "- NEVER use for simple factual, time, or knowledge lookups (e.g., 'What time is it in Tokyo?').\n" +
-        "- NEVER use when explaining a single topic with no alternatives.",
-      inputSchema: decisionInputSchema,
+ server.registerTool(
+  "build_decision_analysis",
+  {
+    title: "Build decision analysis",
+    description:
+      "Structures and scores a choice between multiple alternatives using explicit, differentiated weighted criteria.\n\n" +
+      "WEIGHTING RULES:\n" +
+      "- Propose an intelligent, contextual weighting for each criterion (1–10 scale).\n" +
+      "- NEVER return equal weights for all criteria. Reflect the user's implicit and explicit urgency and goals.\n\n" +
+      "WHEN TO USE:\n" +
+      "- ONLY when comparing or deciding between at least TWO concrete options.\n\n" +
+      "STRICT EXCLUSIONS (NEVER USE):\n" +
+      "- Translations, single explanations, factual questions, or creative writing.",
+    inputSchema: decisionInputSchema,
+    // ...
       outputSchema: decisionOutputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
       _meta: {
