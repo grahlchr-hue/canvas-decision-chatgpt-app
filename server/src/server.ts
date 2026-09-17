@@ -5,7 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { scoreDecision, type DecisionInput } from "./decision.js";
 
-export const TEMPLATE_URI = "ui://decision-canvas/v1.html";
+export const TEMPLATE_URI = "ui://decision-canvas/v2.html";
 
 const criterionSchema = z.object({
   id: z.string().min(1).max(40).regex(/^[a-z0-9_-]+$/),
