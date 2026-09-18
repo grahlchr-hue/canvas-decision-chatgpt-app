@@ -20,7 +20,7 @@ app.get("/terms", (_req, res) => {
 });
 
 app.get("/.well-known/openai-apps-challenge", (_req, res) => {
-  const token = "o7I1ETQQBHz9rU4k_0bJXUlkwVKyC6qLSNKOvaLpXkA";
+  const token = process.env.OPENAI_APPS_VERIFICATION_TOKEN;
 
   if (!token) {
     return res.status(404).send("Verification token not configured");
