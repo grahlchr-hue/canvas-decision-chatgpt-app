@@ -61,6 +61,16 @@ app.get("/preview", (_req, res) => {
 
 app.get("/widget", (_req, res) => res.type("html").send(loadWidgetHtml()));
 
+app.get("/.well-known/openai-apps-challenge", (_req, res) => {
+  const token = process.env.OPENAI_APPS_VERIFICATION_TOKEN;
+
+  if (!token) {
+    return res.status(404).send("Verification token not configured");
+  }
+
+  res.type("text/plain").send(token);
+});
+
 app.listen(port, () => {
     console.log(`Server läuft auf Port ${port}`);
     console.log(`Decision Canvas MCP server: http://localhost:${port}/mcp`);
